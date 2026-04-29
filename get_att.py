@@ -5,6 +5,7 @@ parser = argparse.ArgumentParser() #create parser
 parser.add_argument("-e", "--eventid", action="extend", nargs="+", type=str, help="list of events to download") #add list of events
 parser.add_argument("-a", "--attribute", nargs="+", help="type of attribute") #add attrib type
 parser.add_argument("-o", "--outfile", type=str, help="output file name") #add attrib type
+parser.add_argument("-w", "--warning", action='store_true', help="filter out attributes from warninglists") #add warninglist type
 argument = parser.parse_args()
 
 MISP_URL = '<MISP_DOMAIN>'
@@ -13,11 +14,12 @@ MISP_KEY = '<MISP_AUTH_KEY>'
 id = argument.eventid
 attrib = argument.attribute
 filename = argument.outfile
+warning = argument.warning
 
 #create misp instance, uses URL and KEY, disable ssl and debug
 misp = PyMISP(MISP_URL, MISP_KEY, ssl=False, debug=False)
 #uses search to return attributes using ID, type and IDS only
-response = misp.search(return_format='json', controller='attributes', eventid=id, exclude_decayed=True, type_attribute=attrib, to_ids=1)
+response = misp.search(return_format='json', controller='attributes', eventid=id, exclude_decayed=True, type_attribute=attrib, to_ids=1, enforce_warninglist=warning)
 #get json from response and separete 'values'
 values = [attr.get("value") for attr in response.get("Attribute", [])]
 
