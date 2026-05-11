@@ -2,8 +2,10 @@
 
 from OTXv2 import OTXv2
 from OTXv2 import IndicatorTypes
+from pprint import pprint
 from collections import defaultdict
 import argparse
+import json
 
 parser = argparse.ArgumentParser() #create parser
 exclusive = parser.add_mutually_exclusive_group()
@@ -13,23 +15,32 @@ parser.add_argument("-o", "--output", type=str, help="output file") #add output 
 parser.add_argument("-s", "--screen", action="store_true", help="show output on screen") #add output to screen
 argument = parser.parse_args()
 
-
-otx = OTXv2("<OTX_API_key>")
-ioc_result = defaultdict(list)
 filename = argument.output
-result_list = []
-
+screen = argument.screen
+otx = OTXv2("<OTX_API_KEY>")
 type_mapping = {
-    'FileHash-MD5': 'md5',
-    'FileHash-SHA1': 'sha1',
-    'FileHash-SHA256': 'sha256',
-    'FileHash-SHA512': 'sha512',
-    'BitcoinAddress': 'btc',
-    'URL': 'url',
-    'CVE': 'vulnerability',
-    'IPv4': 'ip-src',
-    'YARA': 'comment',
-    'SSLCertFingerprint': 'comment'
+        'BitcoinAddress': 'btc',
+        'CIDR': 'comment',
+        'CVE': 'vulnerability',
+        'Domain': 'domain',
+        'Email': 'email',
+        'FileHash-IMPHASH': 'imphash',
+        'FileHash-MD5': 'md5',
+        'FileHash-PEHASH': 'pehash',
+        'FileHash-SHA1': 'sha1',
+        'FileHash-SHA256': 'sha256',
+        'FileHash-SHA512': 'sha512',
+        'Hostname': 'hostname',
+        'IPv4': 'ip-src',
+        'IPv6': 'ip-src',
+        'Mutex': 'mutex',
+        'NIDS': 'comment',
+        'Osquery': 'comment',
+        'SSLCertFingerprint': 'comment',
+        'URI': 'uri',
+        'URL': 'url',
+        'YARA': 'comment',
+        'YARA': 'yara'
 }
 
 # Get all the indicators associated with a pulse
@@ -64,19 +75,33 @@ def write_screen(i):
                 print(line)
 
 if __name__ == "__main__":
+
+        ioc_result = defaultdict(list)
+        result_list = []
+
         if (argument.all):
                 get_all()
+                if (filename):
+                        for ioc_type, ioc in ioc_result.items():
+                                for iocs in ioc:
+                                        result_list.append(ioc_type+":"+iocs)
+                        write_file(result_list)
+                if (screen):
+                        for ioc_type, ioc in ioc_result.items():
+                                for iocs in ioc:
+                                        result_list.append(ioc_type+":"+iocs)
+                        write_screen(result_list)
         elif (argument.pulse):
                 get_pulses()
-
-        if (filename):
-                for ioc_type, ioc in ioc_result.items():
-                        for iocs in ioc:
-                                result_list.append(ioc_type+":"+iocs)
-                write_file(result_list)
-
-        if (argument.screen):
-                for ioc_type, ioc in ioc_result.items():
-                        for iocs in ioc:
-                                result_list.append(ioc_type+":"+iocs)
-                write_screen(result_list)
+                if (filename):
+                        for ioc_type, ioc in ioc_result.items():
+                                for iocs in ioc:
+                                        result_list.append(ioc_type+":"+iocs)
+                        write_file(result_list)
+                if (screen):
+                        for ioc_type, ioc in ioc_result.items():
+                                for iocs in ioc:
+                                        result_list.append(ioc_type+":"+iocs)
+                        write_screen(result_list)
+        else:
+                print("Missing arguments -p or -a. Use -h for help.")
