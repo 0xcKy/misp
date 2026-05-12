@@ -65,23 +65,36 @@ def get_all():
                         ioc = i['indicator']
                         ioc_type = i['type']
                         ioc_type = type_mapping.get(ioc_type, ioc_type)
-def create_event():
+def get_all_misp_create():
         pulses_json = otx.getall()
         for pulses in pulses_json:
-                adversary = pulses['adversary']
-                attack_ids = pulses['attack_ids']
-                description = pulses ['description']
+                event_info["adversary"] = pulses['adversary']
+                event_info["attack_ids"] = pulses['attack_ids']
+                event_info["description"] = pulses ['description']
+                event_info["name"] = pulses['name']
+                event_info["references"] = pulses['references']
+                event_info["targeted_countries"] = pulses['targeted_countries']
+                event_info["tlp"] = pulses['tlp']
                 indicators = pulses['indicators']
-                name = pulses['name']
-                references = pulses['references']
-                targeted_countries = pulses['targeted_countries']
-                tlp = pulses['tlp']
                 for i in indicators:
                         ioc = i['indicator']
                         ioc_type = i['type']
                         ioc_type = type_mapping.get(ioc_type, ioc_type)
                         ioc_result[ioc_type].append(ioc)
                         ioc_result[ioc_type].append(ioc)
+                create_event()
+def create_event():
+        #for key, value in event_info.items():
+        #       print(f"{key} -> {value}")
+        #misp = PyMISP(MISP_URL, MISP_KEY, ssl=False, debug=False)
+        #event = MISPEvent()
+        #event.info = event_info["name"]
+        #event.analysis = "2" #completed
+        #event.published = False
+        #event.distribution = "0" #your org only
+        #event.threat_level_id = "2" #level HIGH
+        #event.add_tag('tlp:clear')
+
 # Create or append indicators to output file
 def write_file(i):
         with open(str(filename), 'a+') as f:
@@ -97,6 +110,7 @@ def write_screen(i):
 
 if __name__ == "__main__":
 
+        event_info = {}
         ioc_result = defaultdict(list)
         result_list = []
 
@@ -125,6 +139,6 @@ if __name__ == "__main__":
                                         result_list.append(ioc_type+":"+iocs)
                         write_screen(result_list)
         elif (argument.event):
-                create_event()
+                get_all_misp_create()
         else:
                 print("Missing arguments -p or -a. Use -h for help.")
