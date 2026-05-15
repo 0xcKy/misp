@@ -10,7 +10,6 @@ import argparse
 parser = argparse.ArgumentParser() #create parser
 exclusive = parser.add_mutually_exclusive_group()
 exclusive.add_argument("-e", "--event", action="store_true", help="create MISP event") #create misp event
-exclusive.add_argument("-t", "--test", action="store_true", help="test function")
 argument = parser.parse_args()
 
 otx = OTXv2("<OTX_API_KEY>")
@@ -41,9 +40,7 @@ type_mapping = {
         'YARA': 'yara'
 }
 
-def test():
-        pulses_json = otx.getall()
-        pprint(pulses_json)
+# Get all the indicators associated subscribed pulses
 def get_all_misp_create():
         pulses_json = otx.getall()
         for pulses in pulses_json:
@@ -53,11 +50,9 @@ def get_all_misp_create():
                 event_info["name"] = pulses['name']
                 event_info["references"] = pulses['references']
                 event_info["targeted_countries"] = pulses['targeted_countries']
-                #event_info["tlp"] = pulses['tlp']
-                for j in pulses['tags']:
-                        tags_list.append(j)
-                for h in pulses['attack_ids']:
-                        tags_list.append(h)
+                event_info["malware_families"] = pulses['malware_families']
+                event_info["tags"] = pulses['tags']
+                event_info["attack_ids"] = pulses['attack_ids']
                 indicators = pulses['indicators']
                 for i in indicators:
                         ioc = i['indicator']
@@ -67,40 +62,44 @@ def get_all_misp_create():
                         ioc_result[ioc_type].append(ioc)
                 create_event()
 def create_event():
-        misp = PyMISP(MISP_URL, MISP_KEY, ssl=False, debug=False)
+        misp = PyMISP(MISP_URL, MISP_KEY, ssl=False, debug=False) #remember to use SSL on production instances
         event = MISPEvent()
         event.info = event_info["name"]
         event.analysis = "2" #completed
         event.published = False
         event.distribution = "0" #your org only
         event.threat_level_id = "2" #level HIGH
-        #event.add_tag('tlp:clear')
-        #if event_info["adversary"]:
-                #event.add_tag('adversary:'+str(event_info["adversary"]))
-        #if event_info["industries"]:
-                #event.add_tag('adversary:'+str(event_info["industries"]))
-        #event.add_attribute('link', str(event_info["references"]), disable_correlaction=False)
-        #event.add_attribute('comment', str(event_info["description"]), disable_correlaction=False)
+        #adding attributes to event
+        event.add_attribute('link', event_info["references"], disable_correlaction=False)
+        event.add_attribute('comment', event_info["description"], disable_correlaction=False)
         for ioc_type, ioc in ioc_result.items():
                 for i in ioc:
-                        print(ioc_type+":"+i)
-        for tags in tags_list:
-                print("tag added -> "+tags)
-        print("event name --> %s" %event.info)
-        print("analysis state --> %s" %event.analysis)
-        print("is published--> %s" %event.published)
-        print("distribution --> %s" %event.distribution)
-        print("threat level --> %s" %event.threat_level_id)
+                        event.add_attribute(ioc_type, ioc, disable_correlaction=False)
+        #adding tags to event
+        #IMPORTANT: the authkey user needs the 'Tag Editor' permission, otherwise we'll not be able create custom tags
+        event.add_tag('tlp:clear')
+        if event_info["targeted_countries"]:
+                for tags in event_info["targeted_countries"]:
+                        event.add_tag('targeted_countries:'+event_info["targeted_countries"])
+        if event_info["industries"]:
+                for tags in event_info["industries"]:
+                        event.add_tag('industries:'+event_info["industries"])
+        for tags in event_info["tags"]:
+                event.add_tag(tags)
+        for tags in event_info["attack_ids"]:
+                event.add_tag(tags)
+        for tags in event_info["malware_families"]:
+                event.add_tag(tags)
+        if event_info["adversary"]:
+               event.add_tag('adversary:'+event_info["adversary"])
+        #creating event
+        event = misp.add_event(event)
+        print("[+]Event '"+event_info["name"]+"' created!")
 
 if __name__ == "__main__":
-
         event_info = {}
         ioc_result = defaultdict(list)
-        tags_list = []
-        
         if (argument.event):
                 get_all_misp_create()
-        elif (argument.test):
-                test()
         else:
-                print("Missing arguments -e or -t. Use -h for help.")
+                print("Missing arguments -e. Use -h for help.")
