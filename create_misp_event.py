@@ -80,10 +80,10 @@ def create_event():
         event.add_tag('tlp:clear')
         if event_info["targeted_countries"]:
                 for tags in event_info["targeted_countries"]:
-                        event.add_tag('targeted_countries:'+event_info["targeted_countries"])
+                        event.add_tag('targeted_countries:'+tags)
         if event_info["industries"]:
                 for tags in event_info["industries"]:
-                        event.add_tag('industries:'+event_info["industries"])
+                        event.add_tag('industries:'+tags)
         for tags in event_info["tags"]:
                 event.add_tag(tags)
         for tags in event_info["attack_ids"]:
